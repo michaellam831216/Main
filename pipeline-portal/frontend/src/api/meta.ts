@@ -31,6 +31,9 @@ export const metaApi = {
   assignUserToRegion: async (regionId: string, userId: string) => {
     await client.post(`/regions/${regionId}/users`, { userId });
   },
+  removeUserFromRegion: async (regionId: string, userId: string) => {
+    await client.delete(`/regions/${regionId}/users/${userId}`);
+  },
 
   snapshots: async (regionId: string) => {
     const { data } = await client.get<Snapshot[]>("/snapshots", { params: { regionId } });

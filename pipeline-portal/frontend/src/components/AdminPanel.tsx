@@ -49,14 +49,87 @@ export function AdminPanel() {
   );
 }
 
+type UserRecord = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  userRegions: { region: { id: string; name: string } }[];
+};
+
+type RegionRecord = { id: string; name: string; currency: string };
+
+function RegionEditor({ user, regions }: { user: UserRecord; regions: RegionRecord[] }) {
+  const qc = useQueryClient();
+  const assigned = new Set(user.userRegions.map((ur) => ur.region.id));
+
+  const assignMut = useMutation({
+    mutationFn: (regionId: string) => metaApi.assignUserToRegion(regionId, user.id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Region assigned"); },
+    onError: () => toast.error("Failed to assign region"),
+  });
+
+  const removeMut = useMutation({
+    mutationFn: (regionId: string) => metaApi.removeUserFromRegion(regionId, user.id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("Region removed"); },
+    onError: () => toast.error("Failed to remove region"),
+  });
+
+  const toggle = (regionId: string) => {
+    if (assigned.has(regionId)) removeMut.mutate(regionId);
+    else assignMut.mutate(regionId);
+  };
+
+  const busy = assignMut.isPending || removeMut.isPending;
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {regions.map((r) => {
+        const active = assigned.has(r.id);
+        return (
+          <button
+            key={r.id}
+            onClick={() => toggle(r.id)}
+            disabled={busy}
+            title={active ? `Remove ${r.name}` : `Assign ${r.name}`}
+            className={`text-xs px-2 py-0.5 rounded-full border font-medium transition-colors disabled:opacity-50 ${
+              active
+                ? "bg-brand-600 text-white border-brand-600 hover:bg-rose-500 hover:border-rose-500"
+                : "bg-white text-gray-500 border-gray-300 hover:border-brand-400 hover:text-brand-600"
+            }`}
+          >
+            {active ? "✓ " : "+ "}{r.name}
+          </button>
+        );
+      })}
+      {regions.length === 0 && <span className="text-xs text-gray-400">No regions available</span>}
+    </div>
+  );
+}
+
 function UsersTab() {
   const qc = useQueryClient();
   const { data: users = [] } = useQuery({ queryKey: ["admin-users"], queryFn: metaApi.adminUsers });
-  const [form, setForm] = useState({ email: "", name: "", password: "", role: "USER" });
+  const { data: regions = [] } = useQuery({ queryKey: ["regions"], queryFn: metaApi.regions });
+  const [form, setForm] = useState({ email: "", name: "", password: "", role: "USER", regionIds: [] as string[] });
+
+  const toggleRegion = (id: string) =>
+    setForm((p) => ({
+      ...p,
+      regionIds: p.regionIds.includes(id) ? p.regionIds.filter((r) => r !== id) : [...p.regionIds, id],
+    }));
 
   const createMut = useMutation({
-    mutationFn: () => metaApi.createUser(form),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-users"] }); toast.success("User created"); setForm({ email: "", name: "", password: "", role: "USER" }); },
+    mutationFn: async () => {
+      const user = await metaApi.createUser({ email: form.email, name: form.name, password: form.password, role: form.role });
+      await Promise.all(form.regionIds.map((rId) => metaApi.assignUserToRegion(rId, user.id)));
+      return user;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("User created");
+      setForm({ email: "", name: "", password: "", role: "USER", regionIds: [] });
+    },
     onError: () => toast.error("Failed to create user"),
   });
 
@@ -83,24 +156,61 @@ function UsersTab() {
             <option value="ADMIN">Admin</option>
           </select>
         </div>
+
+        <div className="mb-3">
+          <p className="text-xs font-medium text-gray-600 mb-2">Assign Regions</p>
+          <div className="flex flex-wrap gap-2">
+            {(regions as RegionRecord[]).map((r) => {
+              const selected = form.regionIds.includes(r.id);
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => toggleRegion(r.id)}
+                  className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${
+                    selected
+                      ? "bg-brand-600 text-white border-brand-600"
+                      : "bg-white text-gray-500 border-gray-300 hover:border-brand-400"
+                  }`}
+                >
+                  {selected ? "✓ " : ""}{r.name} <span className="font-mono opacity-70">({r.currency})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           onClick={() => createMut.mutate()}
-          disabled={createMut.isPending}
+          disabled={createMut.isPending || !form.email || !form.name || !form.password}
           className="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700 disabled:opacity-50"
         >
           {createMut.isPending ? "Creating…" : "Create User"}
         </button>
       </Section>
+
       <Section title="All Users">
         <table className="w-full text-sm">
-          <thead><tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-200">{["Name","Email","Role","Regions"].map(h=><th key={h} className="pb-2 pr-4 font-semibold">{h}</th>)}</tr></thead>
+          <thead>
+            <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-200">
+              {["Name", "Email", "Role", "Regions (click to toggle)"].map((h) => (
+                <th key={h} className="pb-2 pr-4 font-semibold">{h}</th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
-            {users.map((u: { id: string; name: string; email: string; role: string; userRegions: { region: { name: string } }[] }) => (
-              <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-2 pr-4 font-medium">{u.name}</td>
-                <td className="py-2 pr-4 text-gray-500">{u.email}</td>
-                <td className="py-2 pr-4"><span className={`text-xs px-2 py-0.5 rounded font-medium ${u.role==="ADMIN"?"bg-amber-100 text-amber-700":"bg-gray-100 text-gray-600"}`}>{u.role}</span></td>
-                <td className="py-2 text-gray-500 text-xs">{u.userRegions.map((ur: { region: { name: string } }) => ur.region.name).join(", ")}</td>
+            {(users as UserRecord[]).map((u) => (
+              <tr key={u.id} className="border-b border-gray-100 align-top">
+                <td className="py-3 pr-4 font-medium whitespace-nowrap">{u.name}</td>
+                <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">{u.email}</td>
+                <td className="py-3 pr-4 whitespace-nowrap">
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${u.role === "ADMIN" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"}`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className="py-3">
+                  <RegionEditor user={u} regions={regions as RegionRecord[]} />
+                </td>
               </tr>
             ))}
           </tbody>
