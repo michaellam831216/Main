@@ -24,6 +24,7 @@ export interface MonthlyEntry {
   dealId: string;
   year: number;
   month: number;
+  mgPayment: number;
   royaltyAmount: number;
   updatedAt: string;
 }

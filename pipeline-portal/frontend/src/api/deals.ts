@@ -46,7 +46,7 @@ export const dealsApi = {
     await client.delete(`/deals/${id}`);
   },
 
-  saveMonthly: async (dealId: string, entries: { year: number; month: number; royaltyAmount: number }[]) => {
+  saveMonthly: async (dealId: string, entries: { year: number; month: number; royaltyAmount?: number; mgPayment?: number }[]) => {
     const { data } = await client.put<MonthlyEntry[]>(`/deals/${dealId}/monthly`, entries);
     return data;
   },

@@ -107,6 +107,7 @@ model MonthlyEntry {
   dealId        String
   year          Int
   month         Int
+  mgPayment     Float    @default(0)
   royaltyAmount Float    @default(0)
   deal          Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
   updatedAt     DateTime @updatedAt

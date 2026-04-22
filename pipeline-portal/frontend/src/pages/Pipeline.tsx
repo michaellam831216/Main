@@ -2,12 +2,68 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store/authStore";
 import { dealsApi } from "../api/deals";
+import { Deal, Region } from "../types";
 import { RegionTabs } from "../components/RegionTabs";
 import { PipelineSummary } from "../components/PipelineSummary";
+import { CollectionSummary } from "../components/CollectionSummary";
 import { DealTable } from "../components/DealTable";
+import { PipelineBreakdown } from "../components/PipelineBreakdown";
 import { ComparisonPanel } from "../components/ComparisonPanel";
 import { AdminPanel } from "../components/AdminPanel";
 import { Header } from "../components/Header";
+
+function useRegionDeals(regionId: string) {
+  return useQuery({
+    queryKey: ["deals", regionId],
+    queryFn: () => dealsApi.list(regionId),
+    enabled: !!regionId,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+  });
+}
+
+function RegionView({ regionId, region }: { regionId: string; region: Region }) {
+  const { data: deals = [], isLoading } = useRegionDeals(regionId);
+  return (
+    <div className="flex-1 flex flex-col">
+      <PipelineSummary deals={deals} currency={region.currency} />
+      <CollectionSummary deals={deals} currency={region.currency} />
+      <div className="flex-1 bg-white">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Loading deals…</div>
+        ) : (
+          <DealTable deals={deals} regionId={regionId} currency={region.currency} />
+        )}
+      </div>
+      <PipelineBreakdown deals={deals} currency={region.currency} />
+      <ComparisonPanel regionId={regionId} currency={region.currency} />
+    </div>
+  );
+}
+
+function AllRegionSection({ region }: { region: Region }) {
+  const { data: deals = [], isLoading } = useRegionDeals(region.id);
+  return (
+    <div>
+      <div className="px-4 py-2 bg-gray-100 border-b border-gray-200 flex items-center gap-2">
+        <span className="font-semibold text-sm text-gray-700">{region.name}</span>
+        <span className="text-xs font-mono bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
+          {region.currency}
+        </span>
+        <span className="text-xs text-gray-400 ml-1">{deals.length} deal{deals.length !== 1 ? "s" : ""}</span>
+      </div>
+      {isLoading ? (
+        <div className="py-6 text-center text-gray-400 text-sm">Loading…</div>
+      ) : (
+        <>
+          <PipelineSummary deals={deals} currency={region.currency} />
+          <CollectionSummary deals={deals} currency={region.currency} />
+          <PipelineBreakdown deals={deals} currency={region.currency} />
+        </>
+      )}
+    </div>
+  );
+}
 
 export function Pipeline() {
   const { user } = useAuthStore();
@@ -17,13 +73,9 @@ export function Pipeline() {
 
   const activeRegion = regions.find((r) => r.id === activeRegionId);
 
-  const { data: deals = [], isLoading } = useQuery({
-    queryKey: ["deals", activeRegionId],
-    queryFn: () => dealsApi.list(activeRegionId),
-    enabled: !!activeRegionId,
-    refetchOnWindowFocus: true,
-    staleTime: 30_000,
-  });
+  // All Regions tab shown when user has 2+ regions
+  const allTab: Region = { id: "all", name: "All Regions", currency: "—" };
+  const tabs: Region[] = regions.length >= 2 ? [...regions, allTab] : regions;
 
   if (!user) return null;
 
@@ -49,40 +101,25 @@ export function Pipeline() {
 
       {showAdmin ? (
         <AdminPanel />
-      ) : (
+      ) : regions.length > 0 ? (
         <>
-          {regions.length > 0 ? (
-            <>
-              <RegionTabs regions={regions} activeRegionId={activeRegionId} onSelect={setActiveRegionId} />
+          <RegionTabs regions={tabs} activeRegionId={activeRegionId} onSelect={setActiveRegionId} />
 
-              {activeRegion && (
-                <>
-                  <PipelineSummary deals={deals} currency={activeRegion.currency} />
-
-                  <div className="flex-1 flex flex-col">
-                    <div className="flex-1 bg-white">
-                      {isLoading ? (
-                        <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
-                          Loading deals…
-                        </div>
-                      ) : (
-                        <DealTable deals={deals} regionId={activeRegionId} currency={activeRegion.currency} />
-                      )}
-                    </div>
-                    <ComparisonPanel regionId={activeRegionId} currency={activeRegion.currency} />
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center text-gray-400">
-                <p className="text-lg font-medium mb-2">No regions assigned</p>
-                <p className="text-sm">Ask an admin to assign you to a region.</p>
-              </div>
+          {activeRegionId === "all" ? (
+            <div className="flex-1 flex flex-col divide-y divide-gray-200">
+              {regions.map((r) => <AllRegionSection key={r.id} region={r} />)}
             </div>
-          )}
+          ) : activeRegion ? (
+            <RegionView regionId={activeRegionId} region={activeRegion} />
+          ) : null}
         </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-gray-400">
+            <p className="text-lg font-medium mb-2">No regions assigned</p>
+            <p className="text-sm">Ask an admin to assign you to a region.</p>
+          </div>
+        </div>
       )}
     </div>
   );

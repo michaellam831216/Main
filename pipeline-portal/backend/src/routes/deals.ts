@@ -156,14 +156,23 @@ router.put("/:id/monthly", async (req, res) => {
   const hasAccess = await assertRegionAccess(req.user!.userId, req.user!.role, deal.regionId);
   if (!hasAccess) return res.status(403).json({ error: "No access" });
 
-  const entries: { year: number; month: number; royaltyAmount: number }[] = req.body;
+  const entries: { year: number; month: number; royaltyAmount?: number; mgPayment?: number }[] = req.body;
 
   await prisma.$transaction(
     entries.map((e) =>
       prisma.monthlyEntry.upsert({
         where: { dealId_year_month: { dealId: deal.id, year: e.year, month: e.month } },
-        update: { royaltyAmount: e.royaltyAmount },
-        create: { dealId: deal.id, year: e.year, month: e.month, royaltyAmount: e.royaltyAmount },
+        update: {
+          ...(e.royaltyAmount !== undefined && { royaltyAmount: e.royaltyAmount }),
+          ...(e.mgPayment !== undefined && { mgPayment: e.mgPayment }),
+        },
+        create: {
+          dealId: deal.id,
+          year: e.year,
+          month: e.month,
+          royaltyAmount: e.royaltyAmount ?? 0,
+          mgPayment: e.mgPayment ?? 0,
+        },
       })
     )
   );
