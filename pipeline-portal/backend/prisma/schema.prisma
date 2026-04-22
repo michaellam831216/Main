@@ -1,0 +1,164 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Probability {
+  SIGNED
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SnapshotType {
+  WEEKLY
+  MONTHLY
+  MANUAL
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  passwordHash String
+  role         Role         @default(USER)
+  userRegions  UserRegion[]
+  deals        Deal[]       @relation("CreatedBy")
+  auditLogs    AuditLog[]
+  snapshots    Snapshot[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Region {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  currency    String
+  userRegions UserRegion[]
+  deals       Deal[]
+  snapshots   Snapshot[]
+  createdAt   DateTime     @default(now())
+}
+
+model UserRegion {
+  id       String @id @default(cuid())
+  userId   String
+  regionId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, regionId])
+}
+
+model Brand {
+  id    String @id @default(cuid())
+  name  String @unique
+  deals Deal[]
+}
+
+model Category {
+  id    String         @id @default(cuid())
+  name  String         @unique
+  deals DealCategory[]
+}
+
+model Deal {
+  id                String         @id @default(cuid())
+  licenseeName      String
+  brandId           String
+  regionId          String
+  probability       Probability
+  contractStartDate DateTime
+  totalContractMg   Float
+  currency          String
+  isActive          Boolean        @default(true)
+  createdById       String
+  notes             String?
+  brand             Brand          @relation(fields: [brandId], references: [id])
+  region            Region         @relation(fields: [regionId], references: [id])
+  createdBy         User           @relation("CreatedBy", fields: [createdById], references: [id])
+  categories        DealCategory[]
+  monthlyEntries    MonthlyEntry[]
+  auditLogs         AuditLog[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model DealCategory {
+  dealId     String
+  categoryId String
+  deal       Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([dealId, categoryId])
+}
+
+model MonthlyEntry {
+  id            String   @id @default(cuid())
+  dealId        String
+  year          Int
+  month         Int
+  royaltyAmount Float    @default(0)
+  deal          Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([dealId, year, month])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  dealId      String
+  fieldName   String
+  oldValue    String?
+  newValue    String?
+  changedById String
+  changedAt   DateTime @default(now())
+  deal        Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  changedBy   User     @relation(fields: [changedById], references: [id])
+}
+
+model Snapshot {
+  id          String          @id @default(cuid())
+  name        String
+  type        SnapshotType
+  regionId    String?
+  createdById String
+  createdAt   DateTime        @default(now())
+  entries     SnapshotEntry[]
+  region      Region?         @relation(fields: [regionId], references: [id])
+  createdBy   User            @relation(fields: [createdById], references: [id])
+}
+
+model SnapshotEntry {
+  id                String      @id @default(cuid())
+  snapshotId        String
+  dealId            String
+  licenseeName      String
+  brandName         String
+  probability       Probability
+  contractStartDate DateTime
+  totalContractMg   Float
+  currency          String
+  categories        String
+  monthlyData       String
+  snapshot          Snapshot    @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+}
+
+model FxRate {
+  id           String   @id @default(cuid())
+  fromCurrency String
+  toCurrency   String
+  rate         Float
+  fetchedAt    DateTime @default(now())
+
+  @@unique([fromCurrency, toCurrency])
+}
