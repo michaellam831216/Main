@@ -10,6 +10,7 @@ import categoriesRouter from "./routes/categories";
 import dealsRouter from "./routes/deals";
 import snapshotsRouter from "./routes/snapshots";
 import adminRouter from "./routes/admin";
+import dashboardRouter from "./routes/dashboard";
 import { prisma } from "./lib/prisma";
 import { takeSnapshot } from "./services/snapshot";
 
@@ -26,6 +27,7 @@ app.use("/api/categories", categoriesRouter);
 app.use("/api/deals", dealsRouter);
 app.use("/api/snapshots", snapshotsRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 

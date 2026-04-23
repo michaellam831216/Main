@@ -33,7 +33,6 @@ router.get("/compare", async (req, res) => {
   const currentDeals = await prisma.deal.findMany({
     where: { regionId, isActive: true },
     include: { monthlyEntries: true },
-    select: { id: true, totalContractMg: true, probability: true, monthlyEntries: true },
   });
 
   const snapshot = await getComparisonSnapshot(regionId, type);

@@ -5,12 +5,6 @@ import { CompareType, DeltaMetric, Probability } from "../types";
 import { format } from "date-fns";
 
 const PROB_LABELS: Record<Probability, string> = { SIGNED: "Signed", HIGH: "High", MEDIUM: "Medium", LOW: "Low" };
-const PROB_COLOR: Record<Probability, string> = {
-  SIGNED: "text-emerald-700",
-  HIGH: "text-blue-700",
-  MEDIUM: "text-amber-700",
-  LOW: "text-rose-700",
-};
 
 interface Props {
   regionId: string;
@@ -28,7 +22,6 @@ function DeltaBadge({ metric, currency, label, isCount }: { metric: DeltaMetric;
   const arrow = direction === "up" ? "▲" : direction === "down" ? "▼" : "—";
   const color = direction === "up" ? "text-emerald-600" : direction === "down" ? "text-rose-600" : "text-gray-400";
   const pctStr = percent !== null ? ` (${percent > 0 ? "+" : ""}${percent}%)` : "";
-  const absStr = (absolute >= 0 ? "+" : "") + (isCount ? String(absolute) : fmtVal(Math.abs(absolute)));
 
   return (
     <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">

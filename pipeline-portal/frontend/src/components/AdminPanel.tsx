@@ -154,6 +154,7 @@ function UsersTab() {
           >
             <option value="USER">User</option>
             <option value="ADMIN">Admin</option>
+            <option value="DASHBOARD">Dashboard</option>
           </select>
         </div>
 
@@ -204,7 +205,11 @@ function UsersTab() {
                 <td className="py-3 pr-4 font-medium whitespace-nowrap">{u.name}</td>
                 <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">{u.email}</td>
                 <td className="py-3 pr-4 whitespace-nowrap">
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${u.role === "ADMIN" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                    u.role === "ADMIN" ? "bg-amber-100 text-amber-700" :
+                    u.role === "DASHBOARD" ? "bg-violet-100 text-violet-700" :
+                    "bg-gray-100 text-gray-600"
+                  }`}>
                     {u.role}
                   </span>
                 </td>

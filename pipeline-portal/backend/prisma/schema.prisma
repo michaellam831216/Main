@@ -10,6 +10,7 @@ generator client {
 enum Role {
   ADMIN
   USER
+  DASHBOARD
 }
 
 enum Probability {

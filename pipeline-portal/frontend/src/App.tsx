@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import { Login } from "./pages/Login";
 import { Pipeline } from "./pages/Pipeline";
+import { Dashboard } from "./pages/Dashboard";
 import { useAuthStore } from "./store/authStore";
 
 const queryClient = new QueryClient({
@@ -11,14 +12,32 @@ const queryClient = new QueryClient({
   },
 });
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
+function DefaultRedirect() {
   const { user } = useAuthStore();
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === "DASHBOARD") return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/pipeline" replace />;
+}
+
+function PipelineRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === "DASHBOARD") return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function DashboardRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "ADMIN" && user.role !== "DASHBOARD") return <Navigate to="/pipeline" replace />;
+  return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
-  return user ? <Navigate to="/" replace /> : <>{children}</>;
+  if (!user) return <>{children}</>;
+  if (user.role === "DASHBOARD") return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/pipeline" replace />;
 }
 
 export default function App() {
@@ -27,8 +46,10 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/" element={<PrivateRoute><Pipeline /></PrivateRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/pipeline" element={<PipelineRoute><Pipeline /></PipelineRoute>} />
+          <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
+          <Route path="/" element={<DefaultRedirect />} />
+          <Route path="*" element={<DefaultRedirect />} />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />

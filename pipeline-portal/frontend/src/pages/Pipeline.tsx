@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store/authStore";
 import { dealsApi } from "../api/deals";
-import { Deal, Region } from "../types";
+import { Region } from "../types";
 import { RegionTabs } from "../components/RegionTabs";
 import { PipelineSummary } from "../components/PipelineSummary";
 import { CollectionSummary } from "../components/CollectionSummary";

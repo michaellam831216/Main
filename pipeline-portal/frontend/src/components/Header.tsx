@@ -23,7 +23,15 @@ export function Header() {
         </div>
         <div className="flex items-center gap-4">
           {user?.role === "ADMIN" && (
-            <span className="text-xs font-semibold bg-amber-500 text-white px-2 py-0.5 rounded">ADMIN</span>
+            <>
+              <span className="text-xs font-semibold bg-amber-500 text-white px-2 py-0.5 rounded">ADMIN</span>
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="text-xs text-blue-200 hover:text-white border border-blue-700 hover:border-blue-400 px-3 py-1 rounded transition-colors"
+              >
+                Dashboard
+              </button>
+            </>
           )}
           <span className="text-sm text-blue-200">{user?.name}</span>
           <button

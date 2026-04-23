@@ -17,7 +17,7 @@ export function Login() {
     try {
       const { user, token } = await authApi.login(email, password);
       setAuth(user, token);
-      navigate("/");
+      navigate(user.role === "DASHBOARD" ? "/dashboard" : "/pipeline");
     } catch {
       toast.error("Invalid email or password");
     } finally {
@@ -73,6 +73,7 @@ export function Login() {
             <p><span className="font-mono">admin@pipeline.com</span> / admin123 <span className="text-amber-600 font-medium">(Admin)</span></p>
             <p><span className="font-mono">alice@pipeline.com</span> / user123 <span className="text-blue-600 font-medium">(EMEA + APAC)</span></p>
             <p><span className="font-mono">bob@pipeline.com</span> / user123 <span className="text-blue-600 font-medium">(North America)</span></p>
+            <p><span className="font-mono">dash@pipeline.com</span> / user123 <span className="text-violet-600 font-medium">(Dashboard)</span></p>
           </div>
         </form>
       </div>

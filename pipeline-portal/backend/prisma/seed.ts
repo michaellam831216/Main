@@ -32,6 +32,12 @@ async function main() {
     create: { email: "carol@pipeline.com", name: "Carol Lee", passwordHash: userHash, role: "USER" },
   });
 
+  await prisma.user.upsert({
+    where: { email: "dash@pipeline.com" },
+    update: {},
+    create: { email: "dash@pipeline.com", name: "Dashboard Viewer", passwordHash: userHash, role: "DASHBOARD" },
+  });
+
   // Regions
   const emea = await prisma.region.upsert({
     where: { name: "EMEA" },
@@ -296,6 +302,7 @@ async function main() {
   console.log("   alice@pipeline.com / user123  (EMEA + APAC)");
   console.log("   bob@pipeline.com   / user123  (North America)");
   console.log("   carol@pipeline.com / user123  (LATAM)");
+  console.log("   dash@pipeline.com  / user123  (Dashboard)");
 }
 
 main()

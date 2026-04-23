@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 export interface AuthPayload {
   userId: string;
-  role: "ADMIN" | "USER";
+  role: "ADMIN" | "USER" | "DASHBOARD";
 }
 
 declare global {
@@ -28,5 +28,12 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (req.user?.role !== "ADMIN") return res.status(403).json({ error: "Admin only" });
+  next();
+}
+
+export function requireAnalytics(req: Request, res: Response, next: NextFunction) {
+  if (req.user?.role !== "ADMIN" && req.user?.role !== "DASHBOARD") {
+    return res.status(403).json({ error: "Analytics access only" });
+  }
   next();
 }

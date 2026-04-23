@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "USER";
+export type Role = "ADMIN" | "USER" | "DASHBOARD";
 export type Probability = "SIGNED" | "HIGH" | "MEDIUM" | "LOW";
 export type SnapshotType = "WEEKLY" | "MONTHLY" | "MANUAL";
 export type CompareType = "week" | "month";
